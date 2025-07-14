@@ -2,41 +2,70 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+/* Futuristic AI Assistant Design System - Dark Theme with Neon Accents
 All colors MUST be HSL.
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Dark backgrounds */
+    --background: 222 84% 4.9%;
+    --foreground: 210 40% 98%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 224 71% 8%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 224 71% 8%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Neon cyan primary */
+    --primary: 186 100% 50%;
+    --primary-foreground: 222 84% 4.9%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Dark glass secondary */
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Neon purple accent */
+    --accent: 280 100% 70%;
+    --accent-foreground: 222 84% 4.9%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+    --ring: 186 100% 50%;
 
-    --radius: 0.5rem;
+    --radius: 1rem;
+
+    /* Custom neon colors */
+    --neon-cyan: 186 100% 50%;
+    --neon-pink: 320 100% 70%;
+    --neon-purple: 280 100% 70%;
+    --neon-blue: 240 100% 70%;
+    
+    /* Glass effects */
+    --glass-bg: 224 71% 8% / 0.6;
+    --glass-border: 217 32% 17% / 0.2;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--neon-cyan)), hsl(var(--neon-blue)));
+    --gradient-secondary: linear-gradient(135deg, hsl(var(--neon-pink)), hsl(var(--neon-purple)));
+    --gradient-background: linear-gradient(180deg, hsl(var(--background)), hsl(224 71% 2%));
+    
+    /* Shadows and glows */
+    --glow-cyan: 0 0 20px hsl(var(--neon-cyan) / 0.5);
+    --glow-purple: 0 0 20px hsl(var(--neon-purple) / 0.5);
+    --glow-pink: 0 0 20px hsl(var(--neon-pink) / 0.5);
+    --shadow-elevated: 0 10px 30px -10px hsl(222 84% 4% / 0.8);
+    
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-glow: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     --sidebar-background: 0 0% 98%;
 
@@ -101,5 +130,83 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    background: var(--gradient-background);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+}
+
+@layer components {
+  /* Glass morphism effects */
+  .glass {
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(10px);
+    border: 1px solid hsl(var(--glass-border));
+  }
+  
+  /* Neon glow effects */
+  .glow-cyan {
+    box-shadow: var(--glow-cyan);
+    transition: var(--transition-glow);
+  }
+  
+  .glow-purple {
+    box-shadow: var(--glow-purple);
+    transition: var(--transition-glow);
+  }
+  
+  .glow-pink {
+    box-shadow: var(--glow-pink);
+    transition: var(--transition-glow);
+  }
+  
+  /* Hover glow intensification */
+  .glow-cyan:hover {
+    box-shadow: 0 0 30px hsl(var(--neon-cyan) / 0.8);
+  }
+  
+  .glow-purple:hover {
+    box-shadow: 0 0 30px hsl(var(--neon-purple) / 0.8);
+  }
+  
+  .glow-pink:hover {
+    box-shadow: 0 0 30px hsl(var(--neon-pink) / 0.8);
+  }
+  
+  /* Floating animation */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  /* Pulse glow animation */
+  @keyframes pulse-glow {
+    0%, 100% { 
+      box-shadow: 0 0 20px hsl(var(--neon-cyan) / 0.5);
+    }
+    50% { 
+      box-shadow: 0 0 40px hsl(var(--neon-cyan) / 0.8);
+    }
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  
+  /* Gradient text */
+  .gradient-text {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* Smooth transitions */
+  .transition-smooth {
+    transition: var(--transition-smooth);
   }
 }
