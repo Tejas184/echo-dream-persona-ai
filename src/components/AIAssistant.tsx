@@ -1,369 +1,225 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, Send, Volume2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Canvas } from '@react-three/fiber';
-import { AIAssistant3D } from './AIAssistant3D';
-import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { Mic, MicOff, Send, User, Bot, Sparkles } from 'lucide-react';
 
 interface Message {
-  id: string;
-  text: string;
-  isUser: boolean;
+  type: 'user' | 'assistant';
+  content: string;
   timestamp: Date;
 }
 
-// Extend Window interface for speech recognition
-declare global {
-  interface Window {
-    SpeechRecognition?: any;
-    webkitSpeechRecognition?: any;
-  }
-}
-
-export const AIAssistant: React.FC = () => {
-  const [isListening, setIsListening] = useState(false);
-  const [inputText, setInputText] = useState('');
+export const AIAssistant = () => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const recognitionRef = useRef<any>(null);
-  const synthRef = useRef<SpeechSynthesis | null>(null);
-  const { toast } = useToast();
+  const [inputValue, setInputValue] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const chatRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const addMessage = (type: 'user' | 'assistant', content: string) => {
+    const message: Message = {
+      type,
+      content,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, message]);
+  };
+
+  const handleSendMessage = () => {
+    if (!inputValue.trim()) return;
+    
+    addMessage('user', inputValue);
+    setInputValue('');
+    
+    // Simulate AI response
+    setIsTyping(true);
+    setTimeout(() => {
+      const responses = [
+        "I understand. How can I help you further?",
+        "That's interesting! Tell me more.",
+        "I'm here to assist you with anything you need.",
+        "Let me think about that...",
+        "Great question! Here's what I think...",
+      ];
+      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+      addMessage('assistant', randomResponse);
+      setIsTyping(false);
+    }, 1000 + Math.random() * 2000);
+  };
+
+  const toggleListening = () => {
+    setIsListening(!isListening);
+    if (!isListening) {
+      // Simulate voice input
+      setTimeout(() => {
+        setIsListening(false);
+        addMessage('user', 'Voice message received');
+      }, 3000);
+    }
+  };
 
   useEffect(() => {
-    // Initialize speech recognition
-    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = 'en-US';
-
-      recognitionRef.current.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setInputText(transcript);
-        handleCommand(transcript);
-      };
-
-      recognitionRef.current.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-        toast({
-          title: "Speech Recognition Error",
-          description: "Could not process voice input. Please try again.",
-          variant: "destructive"
-        });
-      };
+    if (chatRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
+  }, [messages]);
 
-    // Initialize speech synthesis
-    synthRef.current = window.speechSynthesis;
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
+  useEffect(() => {
+    inputRef.current?.focus();
   }, []);
 
-  const startListening = () => {
-    if (recognitionRef.current && !isListening) {
-      setIsListening(true);
-      recognitionRef.current.start();
-    }
-  };
-
-  const stopListening = () => {
-    if (recognitionRef.current && isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    }
-  };
-
-  const speak = (text: string) => {
-    if (synthRef.current) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.9;
-      utterance.pitch = 1.1;
-      utterance.volume = 0.8;
-      synthRef.current.speak(utterance);
-    }
-  };
-
-  const addMessage = (text: string, isUser: boolean) => {
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      text,
-      isUser,
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, newMessage]);
-  };
-
-  const handleCommand = async (command: string) => {
-    setIsProcessing(true);
-    addMessage(command, true);
-    
-    let response = "I understand your request, but I have limited capabilities in this demo environment.";
-    
-    const lowerCommand = command.toLowerCase();
-    
-    // Process different types of commands
-    if (lowerCommand.includes('play') && lowerCommand.includes('spotify')) {
-      response = "I'd love to play music on Spotify for you! 🎵 In a real implementation, I would connect to the Spotify API to play your requested song.";
-    } else if (lowerCommand.includes('open') && (lowerCommand.includes('documents') || lowerCommand.includes('folder'))) {
-      response = "Opening your documents folder! 📁 In a full implementation, I would access your local file system to open the requested folder.";
-    } else if (lowerCommand.includes('search') && lowerCommand.includes('google')) {
-      response = "Searching Google for you! 🔍 I would normally open a new browser tab with your search query.";
-      // Actually open Google search
-      const searchTerm = command.replace(/search.*?google.*?for/i, '').trim();
-      if (searchTerm) {
-        window.open(`https://www.google.com/search?q=${encodeURIComponent(searchTerm)}`, '_blank');
-      }
-    } else if (lowerCommand.includes('shut down') || lowerCommand.includes('shutdown')) {
-      response = "I cannot shut down your system for security reasons, but I understand you want to power off your device! 💻";
-    } else if (lowerCommand.includes('time') || lowerCommand.includes('what time')) {
-      const now = new Date();
-      response = `The current time is ${now.toLocaleTimeString()}! ⏰`;
-    } else if (lowerCommand.includes('weather')) {
-      response = "I'd love to check the weather for you! ☀️ In a full implementation, I would connect to a weather API to get current conditions.";
-    } else if (lowerCommand.includes('hello') || lowerCommand.includes('hi')) {
-      response = "Hello there! 👋 I'm your AI assistant. How can I help you today?";
-    } else {
-      response = "I hear you! While I'm still learning, I can help with basic commands like playing music, opening folders, searching Google, and checking the time. What would you like me to do? ✨";
-    }
-    
-    // Simulate processing delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    addMessage(response, false);
-    speak(response);
-    setIsProcessing(false);
-  };
-
-  const handleSendText = () => {
-    if (inputText.trim()) {
-      handleCommand(inputText);
-      setInputText('');
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSendText();
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-background relative overflow-hidden">
-      {/* Background effects */}
-      <div className="absolute inset-0 bg-gradient-to-br from-neon-purple/10 via-transparent to-neon-cyan/10" />
-      
-      {/* Main Container */}
-      <div className="h-screen flex flex-col">
-        {/* Header */}
-        <header className="relative z-20 p-6">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center"
-          >
-            <h1 className="text-3xl font-bold gradient-text mb-2">
-              AI Assistant
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Your intelligent companion
-            </p>
-          </motion.div>
-        </header>
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-neon-cyan/30 to-neon-blue/30 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-r from-neon-purple/30 to-neon-pink/30 rounded-full blur-3xl animate-pulse-glow"></div>
+      </div>
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex items-center justify-center relative">
-          {/* 3D Assistant - Centered */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-80 h-80 animate-float">
-              <Canvas camera={{ position: [0, 0, 5] }}>
-                <AIAssistant3D isProcessing={isProcessing} isListening={isListening} />
-              </Canvas>
+      {/* Header */}
+      <header className="relative z-10 p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-neon-cyan to-neon-purple flex items-center justify-center glow-cyan">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold gradient-text">ARIA</h1>
+                <p className="text-sm text-muted-foreground">Personal AI Assistant</p>
+              </div>
             </div>
+            <Badge variant="outline" className="glow-purple">
+              {isListening ? 'Listening...' : 'Ready'}
+            </Badge>
           </div>
+        </div>
+      </header>
 
-          {/* Chat Interface - Right Side */}
-          <div className="absolute top-4 right-4 w-96 h-[calc(100vh-12rem)] flex flex-col z-10">
-            <Card className="glass border-neon-cyan/30 p-4 flex-1 flex flex-col max-h-full">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-foreground">Chat</h3>
+      {/* Main Chat Interface */}
+      <main className="relative z-10 px-6 pb-6">
+        <div className="max-w-4xl mx-auto">
+          <Card className="glass glow-cyan h-[70vh] flex flex-col">
+            {/* Chat Header */}
+            <div className="p-6 border-b border-border/20">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Conversation</h2>
                 <div className="flex items-center space-x-2">
-                  <div className={`w-2 h-2 rounded-full ${isListening ? 'bg-neon-pink animate-pulse' : isProcessing ? 'bg-neon-cyan animate-pulse' : 'bg-muted'}`} />
-                  <span className="text-xs text-muted-foreground">
-                    {isListening ? 'Listening' : isProcessing ? 'Processing' : 'Ready'}
-                  </span>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm text-muted-foreground">Online</span>
                 </div>
               </div>
-              
-              {/* Messages Container */}
-              <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2">
-                <AnimatePresence>
-                  {messages.map((message) => (
-                    <motion.div
-                      key={message.id}
-                      initial={{ opacity: 0, x: message.isUser ? 20 : -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: message.isUser ? 20 : -20 }}
-                      className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
+            </div>
+
+            {/* Messages Area */}
+            <div 
+              ref={chatRef}
+              className="flex-1 p-6 overflow-y-auto space-y-6"
+            >
+              {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-r from-neon-cyan to-neon-purple flex items-center justify-center glow-cyan animate-pulse-glow">
+                    <Bot className="w-8 h-8 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold gradient-text mb-2">Hello! I'm ARIA</h3>
+                    <p className="text-muted-foreground">Your personal AI assistant. How can I help you today?</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {messages.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`flex items-start space-x-3 animate-fade-in ${
+                        message.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''
+                      }`}
                     >
-                      <div
-                        className={`max-w-[80%] p-3 rounded-lg ${
-                          message.isUser
-                            ? 'bg-gradient-primary text-primary-foreground shadow-glow-cyan'
-                            : 'glass border-neon-purple/30 text-foreground'
-                        }`}
-                      >
-                        <p className="text-sm leading-relaxed">{message.text}</p>
-                        <p className="text-xs opacity-70 mt-1">
-                          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        message.type === 'user' 
+                          ? 'bg-primary glow-purple' 
+                          : 'bg-gradient-to-r from-neon-cyan to-neon-blue glow-cyan'
+                      }`}>
+                        {message.type === 'user' ? (
+                          <User className="w-4 h-4 text-primary-foreground" />
+                        ) : (
+                          <Bot className="w-4 h-4 text-white" />
+                        )}
+                      </div>
+                      <div className={`flex-1 ${message.type === 'user' ? 'text-right' : ''}`}>
+                        <div className={`inline-block max-w-[80%] p-4 rounded-2xl ${
+                          message.type === 'user'
+                            ? 'bg-primary text-primary-foreground ml-auto'
+                            : 'glass border border-border/20'
+                        }`}>
+                          <p className="text-sm leading-relaxed">{message.content}</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {message.timestamp.toLocaleTimeString()}
                         </p>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
-                </AnimatePresence>
-                
-                {isProcessing && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="flex justify-start"
-                  >
-                    <div className="glass border-neon-purple/30 p-3 rounded-lg">
-                      <div className="flex items-center space-x-2">
+                  
+                  {isTyping && (
+                    <div className="flex items-start space-x-3 animate-fade-in">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-neon-cyan to-neon-blue flex items-center justify-center glow-cyan">
+                        <Bot className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="glass border border-border/20 p-4 rounded-2xl">
                         <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-neon-cyan rounded-full animate-bounce" />
-                          <div className="w-2 h-2 bg-neon-purple rounded-full animate-bounce delay-75" />
-                          <div className="w-2 h-2 bg-neon-pink rounded-full animate-bounce delay-150" />
+                          <div className="w-2 h-2 bg-neon-cyan rounded-full animate-pulse"></div>
+                          <div className="w-2 h-2 bg-neon-cyan rounded-full animate-pulse" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-neon-cyan rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
                         </div>
-                        <span className="text-xs text-muted-foreground">Processing...</span>
                       </div>
                     </div>
-                  </motion.div>
-                )}
-              </div>
+                  )}
+                </>
+              )}
+            </div>
 
-              {/* Input Area */}
-              <div className="flex space-x-2">
-                <Input
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Type your command..."
-                  className="glass border-neon-cyan/30 bg-card/50 text-foreground placeholder:text-muted-foreground flex-1"
-                />
+            {/* Input Area */}
+            <div className="p-6 border-t border-border/20">
+              <div className="flex items-center space-x-3">
+                <div className="flex-1 relative">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                    placeholder="Type your message..."
+                    className="w-full bg-background/50 border border-border/20 rounded-full px-6 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleSendMessage}
+                    disabled={!inputValue.trim()}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full glow-cyan"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+                
                 <Button
-                  onClick={handleSendText}
-                  variant="outline"
-                  size="icon"
-                  className="glass border-neon-cyan/30 hover:bg-neon-cyan/20 glow-cyan"
-                  disabled={!inputText.trim() || isProcessing}
+                  size="lg"
+                  variant={isListening ? "default" : "outline"}
+                  onClick={toggleListening}
+                  className={`rounded-full w-12 h-12 ${
+                    isListening ? "glow-pink animate-pulse-glow" : "glow-purple"
+                  }`}
                 >
-                  <Send className="h-4 w-4" />
+                  {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
                 </Button>
               </div>
-            </Card>
-          </div>
-
-          {/* Welcome Message - Left Side */}
-          {messages.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 1, duration: 0.8 }}
-              className="absolute left-8 top-1/2 transform -translate-y-1/2 max-w-md z-10"
-            >
-              <Card className="glass border-neon-purple/30 p-6">
-                <h2 className="text-2xl font-bold gradient-text mb-4">
-                  Welcome!
-                </h2>
-                <p className="text-muted-foreground mb-6 leading-relaxed">
-                  I'm your personal AI assistant. I can help you with various tasks using voice or text commands.
-                </p>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3 text-sm">
-                    <div className="w-2 h-2 bg-neon-cyan rounded-full" />
-                    <span className="text-neon-cyan">"Play my favorite song on Spotify"</span>
-                  </div>
-                  <div className="flex items-center space-x-3 text-sm">
-                    <div className="w-2 h-2 bg-neon-purple rounded-full" />
-                    <span className="text-neon-purple">"Search for pizza places on Google"</span>
-                  </div>
-                  <div className="flex items-center space-x-3 text-sm">
-                    <div className="w-2 h-2 bg-neon-pink rounded-full" />
-                    <span className="text-neon-pink">"What time is it?"</span>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          )}
-        </div>
-
-        {/* Bottom Controls */}
-        <footer className="relative z-20 p-6">
-          <div className="flex items-center justify-center space-x-6">
-            {/* Voice Control Button */}
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Button
-                onClick={isListening ? stopListening : startListening}
-                variant="outline"
-                size="lg"
-                className={`glass border-neon-pink/50 hover:bg-neon-pink/20 w-16 h-16 rounded-full transition-all duration-300 ${
-                  isListening ? 'glow-pink animate-pulse-glow' : 'glow-pink'
-                }`}
-                disabled={isProcessing}
-              >
-                {isListening ? (
-                  <MicOff className="h-6 w-6" />
-                ) : (
-                  <Mic className="h-6 w-6" />
-                )}
-              </Button>
-            </motion.div>
-
-            {/* Status Indicators */}
-            <div className="flex items-center space-x-4">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex items-center space-x-2 glass border-neon-cyan/30 px-4 py-2 rounded-full"
-              >
-                <Volume2 className="w-4 h-4 text-neon-cyan" />
-                <span className="text-xs text-foreground font-medium">Audio Ready</span>
-              </motion.div>
-              
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex items-center space-x-2 glass border-neon-purple/30 px-4 py-2 rounded-full"
-              >
-                <div className={`w-3 h-3 rounded-full transition-colors duration-300 ${
-                  isListening ? 'bg-neon-pink animate-pulse' : 
-                  isProcessing ? 'bg-neon-cyan animate-pulse' : 
-                  'bg-muted'
-                }`} />
-                <span className="text-xs text-foreground font-medium">
-                  {isListening ? 'Listening' : isProcessing ? 'Processing' : 'Ready'}
-                </span>
-              </motion.div>
             </div>
-          </div>
-        </footer>
-      </div>
+          </Card>
+        </div>
+      </main>
     </div>
   );
 };
