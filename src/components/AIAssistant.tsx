@@ -165,149 +165,205 @@ export const AIAssistant: React.FC = () => {
       {/* Background effects */}
       <div className="absolute inset-0 bg-gradient-to-br from-neon-purple/10 via-transparent to-neon-cyan/10" />
       
-      {/* 3D Assistant */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-96 h-96 animate-float">
-          <Canvas camera={{ position: [0, 0, 5] }}>
-            <AIAssistant3D isProcessing={isProcessing} isListening={isListening} />
-          </Canvas>
-        </div>
-      </div>
+      {/* Main Container */}
+      <div className="h-screen flex flex-col">
+        {/* Header */}
+        <header className="relative z-20 p-6">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center"
+          >
+            <h1 className="text-3xl font-bold gradient-text mb-2">
+              AI Assistant
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Your intelligent companion
+            </p>
+          </motion.div>
+        </header>
 
-      {/* Chat Interface */}
-      <div className="absolute top-8 right-8 w-96 max-h-[60vh] flex flex-col">
-        <Card className="glass border-neon-cyan/30 p-4 flex-1">
-          <div className="flex flex-col h-full">
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto space-y-3 mb-4 max-h-64">
-              <AnimatePresence>
-                {messages.map((message) => (
-                  <motion.div
-                    key={message.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[80%] p-3 rounded-lg ${
-                        message.isUser
-                          ? 'bg-gradient-primary text-primary-foreground'
-                          : 'glass border-neon-purple/30 text-foreground'
-                      }`}
+        {/* Main Content Area */}
+        <div className="flex-1 flex items-center justify-center relative">
+          {/* 3D Assistant - Centered */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-80 h-80 animate-float">
+              <Canvas camera={{ position: [0, 0, 5] }}>
+                <AIAssistant3D isProcessing={isProcessing} isListening={isListening} />
+              </Canvas>
+            </div>
+          </div>
+
+          {/* Chat Interface - Right Side */}
+          <div className="absolute top-4 right-4 w-96 h-[calc(100vh-12rem)] flex flex-col z-10">
+            <Card className="glass border-neon-cyan/30 p-4 flex-1 flex flex-col max-h-full">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-foreground">Chat</h3>
+                <div className="flex items-center space-x-2">
+                  <div className={`w-2 h-2 rounded-full ${isListening ? 'bg-neon-pink animate-pulse' : isProcessing ? 'bg-neon-cyan animate-pulse' : 'bg-muted'}`} />
+                  <span className="text-xs text-muted-foreground">
+                    {isListening ? 'Listening' : isProcessing ? 'Processing' : 'Ready'}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Messages Container */}
+              <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2">
+                <AnimatePresence>
+                  {messages.map((message) => (
+                    <motion.div
+                      key={message.id}
+                      initial={{ opacity: 0, x: message.isUser ? 20 : -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: message.isUser ? 20 : -20 }}
+                      className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
                     >
-                      <p className="text-sm">{message.text}</p>
+                      <div
+                        className={`max-w-[80%] p-3 rounded-lg ${
+                          message.isUser
+                            ? 'bg-gradient-primary text-primary-foreground shadow-glow-cyan'
+                            : 'glass border-neon-purple/30 text-foreground'
+                        }`}
+                      >
+                        <p className="text-sm leading-relaxed">{message.text}</p>
+                        <p className="text-xs opacity-70 mt-1">
+                          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                
+                {isProcessing && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex justify-start"
+                  >
+                    <div className="glass border-neon-purple/30 p-3 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 bg-neon-cyan rounded-full animate-bounce" />
+                          <div className="w-2 h-2 bg-neon-purple rounded-full animate-bounce delay-75" />
+                          <div className="w-2 h-2 bg-neon-pink rounded-full animate-bounce delay-150" />
+                        </div>
+                        <span className="text-xs text-muted-foreground">Processing...</span>
+                      </div>
                     </div>
                   </motion.div>
-                ))}
-              </AnimatePresence>
-              {isProcessing && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex justify-start"
+                )}
+              </div>
+
+              {/* Input Area */}
+              <div className="flex space-x-2">
+                <Input
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Type your command..."
+                  className="glass border-neon-cyan/30 bg-card/50 text-foreground placeholder:text-muted-foreground flex-1"
+                />
+                <Button
+                  onClick={handleSendText}
+                  variant="outline"
+                  size="icon"
+                  className="glass border-neon-cyan/30 hover:bg-neon-cyan/20 glow-cyan"
+                  disabled={!inputText.trim() || isProcessing}
                 >
-                  <div className="glass border-neon-purple/30 p-3 rounded-lg">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-neon-cyan rounded-full animate-bounce" />
-                      <div className="w-2 h-2 bg-neon-purple rounded-full animate-bounce delay-75" />
-                      <div className="w-2 h-2 bg-neon-pink rounded-full animate-bounce delay-150" />
-                    </div>
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </Card>
+          </div>
+
+          {/* Welcome Message - Left Side */}
+          {messages.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 1, duration: 0.8 }}
+              className="absolute left-8 top-1/2 transform -translate-y-1/2 max-w-md z-10"
+            >
+              <Card className="glass border-neon-purple/30 p-6">
+                <h2 className="text-2xl font-bold gradient-text mb-4">
+                  Welcome!
+                </h2>
+                <p className="text-muted-foreground mb-6 leading-relaxed">
+                  I'm your personal AI assistant. I can help you with various tasks using voice or text commands.
+                </p>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3 text-sm">
+                    <div className="w-2 h-2 bg-neon-cyan rounded-full" />
+                    <span className="text-neon-cyan">"Play my favorite song on Spotify"</span>
                   </div>
-                </motion.div>
-              )}
-            </div>
+                  <div className="flex items-center space-x-3 text-sm">
+                    <div className="w-2 h-2 bg-neon-purple rounded-full" />
+                    <span className="text-neon-purple">"Search for pizza places on Google"</span>
+                  </div>
+                  <div className="flex items-center space-x-3 text-sm">
+                    <div className="w-2 h-2 bg-neon-pink rounded-full" />
+                    <span className="text-neon-pink">"What time is it?"</span>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+        </div>
 
-            {/* Input Area */}
-            <div className="flex space-x-2">
-              <Input
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type your command..."
-                className="glass border-neon-cyan/30 bg-card/50 text-foreground placeholder:text-muted-foreground"
-              />
+        {/* Bottom Controls */}
+        <footer className="relative z-20 p-6">
+          <div className="flex items-center justify-center space-x-6">
+            {/* Voice Control Button */}
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
               <Button
-                onClick={handleSendText}
+                onClick={isListening ? stopListening : startListening}
                 variant="outline"
-                size="icon"
-                className="glass border-neon-cyan/30 hover:bg-neon-cyan/20 glow-cyan"
+                size="lg"
+                className={`glass border-neon-pink/50 hover:bg-neon-pink/20 w-16 h-16 rounded-full transition-all duration-300 ${
+                  isListening ? 'glow-pink animate-pulse-glow' : 'glow-pink'
+                }`}
+                disabled={isProcessing}
               >
-                <Send className="h-4 w-4" />
+                {isListening ? (
+                  <MicOff className="h-6 w-6" />
+                ) : (
+                  <Mic className="h-6 w-6" />
+                )}
               </Button>
+            </motion.div>
+
+            {/* Status Indicators */}
+            <div className="flex items-center space-x-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center space-x-2 glass border-neon-cyan/30 px-4 py-2 rounded-full"
+              >
+                <Volume2 className="w-4 h-4 text-neon-cyan" />
+                <span className="text-xs text-foreground font-medium">Audio Ready</span>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center space-x-2 glass border-neon-purple/30 px-4 py-2 rounded-full"
+              >
+                <div className={`w-3 h-3 rounded-full transition-colors duration-300 ${
+                  isListening ? 'bg-neon-pink animate-pulse' : 
+                  isProcessing ? 'bg-neon-cyan animate-pulse' : 
+                  'bg-muted'
+                }`} />
+                <span className="text-xs text-foreground font-medium">
+                  {isListening ? 'Listening' : isProcessing ? 'Processing' : 'Ready'}
+                </span>
+              </motion.div>
             </div>
           </div>
-        </Card>
+        </footer>
       </div>
-
-      {/* Voice Control */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <Button
-            onClick={isListening ? stopListening : startListening}
-            variant="outline"
-            size="lg"
-            className={`glass border-neon-pink/50 hover:bg-neon-pink/20 w-16 h-16 rounded-full ${
-              isListening ? 'glow-pink animate-pulse-glow' : 'glow-pink'
-            }`}
-          >
-            {isListening ? (
-              <MicOff className="h-6 w-6" />
-            ) : (
-              <Mic className="h-6 w-6" />
-            )}
-          </Button>
-        </motion.div>
-      </div>
-
-      {/* Status Indicators */}
-      <div className="absolute bottom-8 right-8 flex flex-col space-y-2">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex items-center space-x-2 glass border-neon-cyan/30 px-3 py-2 rounded-lg"
-        >
-          <div className={`w-2 h-2 rounded-full ${isListening ? 'bg-neon-pink animate-pulse' : 'bg-muted'}`} />
-          <span className="text-xs text-muted-foreground">
-            {isListening ? 'Listening...' : 'Voice Ready'}
-          </span>
-        </motion.div>
-        
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex items-center space-x-2 glass border-neon-purple/30 px-3 py-2 rounded-lg"
-        >
-          <Volume2 className="w-3 h-3 text-neon-purple" />
-          <span className="text-xs text-muted-foreground">Audio Ready</span>
-        </motion.div>
-      </div>
-
-      {/* Welcome Message */}
-      {messages.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1 }}
-          className="absolute top-1/4 left-1/2 transform -translate-x-1/2 text-center"
-        >
-          <h1 className="text-4xl font-bold gradient-text mb-4">
-            Your AI Assistant
-          </h1>
-          <p className="text-muted-foreground mb-6">
-            Hello! I'm your personal AI assistant. Try saying commands like:
-          </p>
-          <div className="space-y-2 text-sm text-neon-cyan">
-            <p>"Play my favorite song on Spotify"</p>
-            <p>"Open my documents folder"</p>
-            <p>"Search for pizza places on Google"</p>
-            <p>"What time is it?"</p>
-          </div>
-        </motion.div>
-      )}
     </div>
   );
 };
